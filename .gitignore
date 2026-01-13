@@ -27,6 +27,7 @@ Thumbs.db
 # Dependencies (Preventative, in case you add them later)
 node_modules/
 vendor/
+storymap_data
 
 # Temporary Data
 # StoryMap/data/ is currently empty. If you want to keep the folder structure but empty:
