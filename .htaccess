@@ -1,0 +1,9 @@
+<IfModule mod_headers.c>
+    Header unset Access-Control-Allow-Origin
+
+    # Then, set the desired Access-Control-Allow-Origin header
+    #Header set Access-Control-Allow-Origin ""
+
+
+</IfModule>
+

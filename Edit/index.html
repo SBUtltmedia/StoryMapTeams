@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StoryMap Editor</title>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+    <!-- Custom Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            overflow: hidden; 
+            background-color: #f8fafc;
+        }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #e2e8f0; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #cbd5e1; }
+
+        /* Accordion Customization */
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
+        
+        /* Animation Classes */
+        .slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
+        .slide-out-right { animation: slideOutRight 0.3s ease-in forwards; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div class="relative h-screen w-full overflow-hidden">
+        
+        <!-- RIGHT PANEL: MAP PREVIEW (Background Layer) -->
+        <div id="preview-container" class="absolute inset-y-0 right-0 left-0 md:left-[420px] bg-gray-100 z-0 transition-all duration-300 ease-in-out">
+            <iframe id="preview-frame" src="preview.html" class="w-full h-full border-0 block opacity-0 transition-opacity duration-500" onload="this.classList.remove('opacity-0')"></iframe>
+        </div>
+
+        <!-- SIDEBAR DRAWER -->
+        <div id="sidebar" class="absolute top-0 left-0 h-full w-full md:w-[420px] bg-white flex flex-col border-r border-gray-200 shadow-2xl z-20 transition-transform duration-300 ease-in-out transform translate-x-0">
+            
+            <!-- TOGGLE TAB -->
+            <button id="sidebar-toggle" class="absolute top-20 -right-6 w-6 h-20 bg-white rounded-r-lg border-y border-r border-gray-200 flex items-center justify-center cursor-pointer shadow-sm text-slate-400 hover:text-emerald-600 hover:bg-slate-50 transition-colors z-[-1] focus:outline-none group">
+                <i class="fas fa-chevron-left text-xs transition-transform duration-300 group-hover:scale-110" id="sidebar-toggle-icon"></i>
+            </button>
+            
+            <!-- TOP BAR (Global Controls) -->
+            <div class="h-16 px-6 border-b border-gray-100 flex items-center justify-between shrink-0 bg-white z-20">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-emerald-600 text-white w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm">SM</div>
+                    <div class="flex flex-col">
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Editor</span>
+                        <div class="flex items-center">
+                            <span class="text-gray-400 text-xs mr-1">ID:</span>
+                            <input type="text" id="storymap-id" class="text-sm font-bold text-slate-700 bg-transparent border-none focus:ring-0 w-12 p-0" value="1">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-1">
+                     <button id="toggle-map-config" class="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all" title="Map Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <button id="save-server-btn" class="h-9 px-3 rounded-full flex items-center justify-center text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all font-medium text-sm group" title="Save to Server">
+                        <i class="fas fa-cloud-upload-alt mr-2 group-hover:scale-110 transition-transform"></i> Save
+                    </button>
+                </div>
+            </div>
+
+            <!-- MAIN CONTENT AREA (Scrollable) -->
+            <div class="flex-1 relative overflow-hidden bg-white">
+                
+                <!-- VIEW 1: LIST OF SLIDES -->
+                <div id="view-list" class="absolute inset-0 overflow-y-auto custom-scrollbar p-6 transition-transform duration-300 ease-out pb-24">
+                    
+                    <!-- Config Panel (Collapsible) -->
+                    <div id="map-config-panel" class="hidden mb-6 bg-white rounded-xl p-5 border border-gray-200 shadow-sm space-y-4 slide-in-top">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-semibold text-slate-700">Map Configuration</h3>
+                            <button id="close-config-btn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                             <div class="col-span-2">
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Language</label>
+                                <input type="text" id="map-language" class="w-full text-sm border-gray-200 rounded-lg focus:border-emerald-500 focus:ring-emerald-500 bg-slate-50">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Base Map</label>
+                                <select id="map-type" class="w-full text-sm border-gray-200 rounded-lg focus:border-emerald-500 focus:ring-emerald-500 bg-slate-50">
+                                    <option value="osm:standard">OpenStreetMap</option>
+                                    <option value="stamen:toner-lite">Stamen Toner Lite</option>
+                                    <option value="stamen:watercolor">Stamen Watercolor</option>
+                                </select>
+                            </div>
+                            <div class="col-span-2 flex items-center pt-2">
+                                <input type="checkbox" id="map-as-image" class="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500">
+                                <label for="map-as-image" class="ml-2 text-sm text-slate-600">Treat map as static image</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Header for List -->
+                    <div class="flex justify-between items-end mb-5 px-1">
+                        <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Storyline</h2>
+                        <span id="slide-count" class="text-xs font-medium text-slate-400 bg-white px-2 py-1 rounded-md border border-gray-100 shadow-sm">0 slides</span>
+                    </div>
+
+                    <!-- The List -->
+                    <div id="points-list" class="space-y-1">
+                        <!-- Items will be injected here via JS -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="empty-state" class="hidden flex flex-col items-center justify-center py-12 text-center">
+                        <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-300">
+                            <i class="fas fa-layer-group text-2xl"></i>
+                        </div>
+                        <p class="text-slate-500 text-sm">Start your story by adding a slide.</p>
+                    </div>
+                </div>
+
+                <!-- VIEW 2: EDITOR FORM -->
+                <div id="view-edit" class="absolute inset-0 bg-white transition-transform duration-300 ease-out transform translate-x-full flex flex-col z-10">
+                    
+                    <!-- Editor Toolbar -->
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white/90 backdrop-blur">
+                        <button id="back-to-list" class="group flex items-center text-sm font-medium text-slate-500 hover:text-emerald-600 transition-colors">
+                            <span class="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-emerald-50 flex items-center justify-center mr-2 transition-colors">
+                                <i class="fas fa-arrow-left group-hover:-translate-x-0.5 transition-transform"></i>
+                            </span>
+                            Back
+                        </button>
+                        <button id="delete-current-slide" class="text-slate-400 hover:text-red-500 transition-colors p-2" title="Delete Slide">
+                            <i class="far fa-trash-alt"></i>
+                        </button>
+                    </div>
+
+                    <!-- Editor Inputs -->
+                    <div class="flex-1 overflow-y-auto custom-scrollbar p-8">
+                        
+                        <div class="space-y-6 mb-8">
+                            <div>
+                                <input type="text" id="edit-headline" class="w-full bg-stone-50 border border-stone-300 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 p-4 transition-all shadow-sm text-3xl font-bold text-slate-800 placeholder-slate-300 leading-tight" placeholder="Headline">
+                            </div>
+                            <div>
+                                <textarea id="edit-text" rows="8" class="w-full bg-stone-50 border border-stone-300 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 p-4 transition-all shadow-sm text-lg text-slate-600 leading-relaxed placeholder-slate-300 resize-none" placeholder="Tell your story..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Collapsible Property Groups -->
+                        <div class="space-y-4">
+                            <!-- Media Group -->
+                            <details class="group bg-slate-50 rounded-xl border border-slate-100 overflow-hidden open:shadow-sm transition-all duration-300">
+                                <summary class="flex items-center justify-between p-4 cursor-pointer select-none bg-white hover:bg-slate-50 transition-colors">
+                                    <div class="flex items-center text-sm font-semibold text-slate-600">
+                                        <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mr-3">
+                                            <i class="far fa-image"></i>
+                                        </div>
+                                        Media
+                                    </div>
+                                    <i class="fas fa-chevron-down text-slate-400 text-xs transition-transform duration-300 group-open:rotate-180"></i>
+                                </summary>
+                                <div class="p-5 pt-2 border-t border-slate-100 space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Image/Video URL</label>
+                                        <input type="text" id="edit-media-url" class="w-full text-sm border-gray-200 rounded-lg focus:border-emerald-500 focus:ring-emerald-500 bg-white" placeholder="https://...">
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Caption</label>
+                                            <input type="text" id="edit-media-caption" class="w-full text-sm border-gray-200 rounded-lg focus:border-emerald-500 focus:ring-emerald-500 bg-white">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Credit</label>
+                                            <input type="text" id="edit-media-credit" class="w-full text-sm border-gray-200 rounded-lg focus:border-emerald-500 focus:ring-emerald-500 bg-white">
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+
+                            <!-- Location Group -->
+                            <details id="location-details" class="group bg-slate-50 rounded-xl border border-slate-100 overflow-hidden open:shadow-sm transition-all duration-300">
+                                <summary class="flex items-center justify-between p-4 cursor-pointer select-none bg-white hover:bg-slate-50 transition-colors">
+                                    <div class="flex items-center text-sm font-semibold text-slate-600">
+                                        <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mr-3">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                        </div>
+                                        Location
+                                    </div>
+                                    <i class="fas fa-chevron-down text-slate-400 text-xs transition-transform duration-300 group-open:rotate-180"></i>
+                                </summary>
+                                <div class="p-5 pt-2 border-t border-slate-100 grid grid-cols-2 gap-4">
+                                    <div class="col-span-2 flex justify-end">
+                                        <button id="toggle-drag-btn" class="text-xs flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all font-medium border border-slate-200">
+                                            <i class="fas fa-lock"></i> <span>Unlock Marker to Drag It</span>
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Latitude</label>
+                                        <input type="number" step="any" id="edit-lat" class="w-full text-sm border-gray-200 rounded-lg focus:border-emerald-500 focus:ring-emerald-500 bg-white">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Longitude</label>
+                                        <input type="number" step="any" id="edit-lon" class="w-full text-sm border-gray-200 rounded-lg focus:border-emerald-500 focus:ring-emerald-500 bg-white">
+                                    </div>
+                                    <div class="col-span-2">
+                                        <p class="text-xs text-slate-400 italic"><i class="fas fa-info-circle mr-1"></i>Move the map in the preview to auto-update these coordinates.</p>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Floating Add Button (Only in List View) -->
+                <button id="add-slide-fab" class="absolute bottom-8 right-8 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg shadow-emerald-200 hover:bg-emerald-700 hover:scale-110 hover:shadow-xl transition-all flex items-center justify-center z-10">
+                    <i class="fas fa-plus text-xl"></i>
+                </button>
+
+            </div>
+
+             <!-- FOOTER STATUS -->
+             <div class="bg-white px-6 py-2 border-t border-gray-100 flex justify-between items-center text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
+                <span id="save-status-message">Ready</span>
+                <span id="version-info">v1.0</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- DELETE CONFIRMATION MODAL -->
+    <div id="delete-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 transition-opacity duration-200">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-80 transform scale-95 transition-transform duration-200">
+            <div class="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-trash-alt text-lg"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800 text-center mb-2">Delete Slide?</h3>
+            <p class="text-sm text-slate-500 text-center mb-6">This action cannot be undone.</p>
+            <div class="flex space-x-3">
+                <button id="cancel-delete-btn" class="flex-1 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">Cancel</button>
+                <button id="confirm-delete-btn" class="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- CONSTANTS & STATE ---
+            const API_BASE_URL = '../';
+            let storyMapData = null;
+            let currentSlideIndex = null;
+            let isConfigOpen = false;
+            let isDraggingEnabled = false;
+
+            // --- DOM ELEMENTS ---
+            const viewList = document.getElementById('view-list');
+            const viewEdit = document.getElementById('view-edit');
+            const pointsList = document.getElementById('points-list');
+            const slideCount = document.getElementById('slide-count');
+            const emptyState = document.getElementById('empty-state');
+            const mapConfigPanel = document.getElementById('map-config-panel');
+            const iframe = document.getElementById('preview-frame');
+            const statusMsg = document.getElementById('save-status-message');
+            
+            // Inputs
+            const idInput = document.getElementById('storymap-id');
+            const editHeadline = document.getElementById('edit-headline');
+            const editText = document.getElementById('edit-text');
+            const editMediaUrl = document.getElementById('edit-media-url');
+            const editMediaCaption = document.getElementById('edit-media-caption');
+            const editMediaCredit = document.getElementById('edit-media-credit');
+            const editLat = document.getElementById('edit-lat');
+            const editLon = document.getElementById('edit-lon');
+            const toggleDragBtn = document.getElementById('toggle-drag-btn');
+            
+            const mapLanguage = document.getElementById('map-language');
+            const mapType = document.getElementById('map-type');
+            const mapAsImage = document.getElementById('map-as-image');
+
+            // --- SIDEBAR TOGGLE LOGIC ---
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebarToggleIcon = document.getElementById('sidebar-toggle-icon');
+            const previewContainer = document.getElementById('preview-container');
+
+            // Force reload iframe to avoid cache issues
+            iframe.src = `preview.html?t=${Date.now()}`;
+
+            sidebarToggle.addEventListener('click', () => {
+                const isClosed = sidebar.classList.toggle('-translate-x-full');
+                
+                // Toggle Preview Width
+                if (isClosed) {
+                    previewContainer.classList.add('!left-0');
+                    sidebarToggleIcon.classList.remove('fa-chevron-left');
+                    sidebarToggleIcon.classList.add('fa-chevron-right');
+                } else {
+                    previewContainer.classList.remove('!left-0');
+                    sidebarToggleIcon.classList.remove('fa-chevron-right');
+                    sidebarToggleIcon.classList.add('fa-chevron-left');
+                }
+            });
+
+            // --- DRAG UI HELPER ---
+            const updateDragButtonUI = () => {
+                if (isDraggingEnabled) {
+                    toggleDragBtn.innerHTML = '<i class="fas fa-unlock"></i> <span>Save Position</span>';
+                    toggleDragBtn.classList.remove('bg-slate-100', 'text-slate-500', 'border-slate-200');
+                    toggleDragBtn.classList.add('bg-emerald-100', 'text-emerald-600', 'border-emerald-200');
+                    
+                    editLat.readOnly = false;
+                    editLon.readOnly = false;
+                    editLat.classList.remove('bg-slate-100', 'text-slate-400');
+                    editLon.classList.remove('bg-slate-100', 'text-slate-400');
+                    editLat.classList.add('bg-white');
+                    editLon.classList.add('bg-white');
+                } else {
+                    toggleDragBtn.innerHTML = '<i class="fas fa-lock"></i> <span>Unlock Marker to Drag It</span>';
+                    toggleDragBtn.classList.add('bg-slate-100', 'text-slate-500', 'border-slate-200');
+                    toggleDragBtn.classList.remove('bg-emerald-100', 'text-emerald-600', 'border-emerald-200');
+                    
+                    editLat.readOnly = true;
+                    editLon.readOnly = true;
+                    editLat.classList.add('bg-slate-100', 'text-slate-400');
+                    editLon.classList.add('bg-slate-100', 'text-slate-400');
+                    editLat.classList.remove('bg-white');
+                    editLon.classList.remove('bg-white');
+                }
+            };
+
+            // --- NAVIGATION LOGIC ---
+
+            const showList = () => {
+                viewList.classList.remove('-translate-x-full'); 
+                viewEdit.classList.add('translate-x-full'); 
+                // Delay clearing index so animations look smooth, but logically we are back
+                setTimeout(() => {
+                    currentSlideIndex = null;
+                    renderPointsList(); // Re-render to show updates
+                }, 300);
+            };
+
+            const showEditor = (index) => {
+                currentSlideIndex = index;
+                populateEditorFields(index);
+                
+                // Reset drag state
+                isDraggingEnabled = false;
+                updateDragButtonUI();
+                
+                viewList.classList.add('-translate-x-full'); // Push list to left (optional, or just cover it)
+                viewEdit.classList.remove('translate-x-full'); // Bring editor in
+                
+                renderStoryMap(index);
+            };
+
+            document.getElementById('back-to-list').addEventListener('click', showList);
+            document.getElementById('add-slide-fab').addEventListener('click', () => {
+                // Create new slide
+                const newSlide = {
+                    text: { headline: "New Slide", text: "" },
+                    location: { lat: 0, lon: 0 }, // Default
+                    media: { url: "" }
+                };
+                if (!storyMapData.storymap.slides) storyMapData.storymap.slides = [];
+                storyMapData.storymap.slides.push(newSlide);
+                showEditor(storyMapData.storymap.slides.length - 1);
+                updateSaveStatus('Unsaved changes');
+            });
+
+            // --- DATA LOGIC ---
+
+            const loadStoryMap = async () => {
+                const id = idInput.value;
+                updateSaveStatus('Loading...');
+                
+                try {
+                    const res = await fetch(`${API_BASE_URL}?id=${id}`);
+                    if (!res.ok) throw new Error("Not found");
+                    const data = await res.json();
+                    storyMapData = data;
+                } catch (e) {
+                    console.log("Creating new map...");
+                    storyMapData = {
+                        storymap: {
+                            language: 'en',
+                            map_type: 'osm:standard',
+                            slides: [{ type: 'overview', text: { headline: "My Story", text: "<p>Intro...</p>" }}]
+                        }
+                    };
+                }
+                
+                renderPointsList();
+                populateMapConfig();
+                renderStoryMap();
+                updateSaveStatus('Ready');
+            };
+
+            const saveToServer = async () => {
+                if (!storyMapData) return;
+                const id = idInput.value;
+                updateSaveStatus('Saving...', 'text-emerald-500');
+                
+                const formData = new FormData();
+                formData.append('json_data', JSON.stringify(storyMapData));
+
+                try {
+                    const res = await fetch(`${API_BASE_URL}?id=${id}`, { method: 'POST', body: formData });
+                    if(res.ok) {
+                         updateSaveStatus('Saved successfully', 'text-green-500');
+                         setTimeout(() => updateSaveStatus('Ready'), 2000);
+                    } else {
+                        throw new Error("Save failed");
+                    }
+                } catch (e) {
+                    updateSaveStatus('Error saving', 'text-red-500');
+                }
+            };
+
+            const updateSaveStatus = (msg, colorClass = 'text-gray-400') => {
+                statusMsg.textContent = msg;
+                statusMsg.className = `text-[10px] uppercase tracking-wider font-semibold ${colorClass}`;
+            };
+
+            // --- RENDERING ---
+
+            const renderPointsList = () => {
+                pointsList.innerHTML = '';
+                const slides = storyMapData?.storymap?.slides || [];
+                slideCount.textContent = `${slides.length} slide${slides.length !== 1 ? 's' : ''}`;
+
+                if (slides.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+                emptyState.classList.add('hidden');
+
+                slides.forEach((slide, index) => {
+                    const el = document.createElement('div');
+                    el.className = 'relative flex items-center p-3 bg-slate-100 rounded-xl border border-slate-200 shadow-sm transition-all cursor-pointer mb-3 group select-none hover:bg-white hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5';
+                    const headline = slide.text?.headline || (slide.type === 'overview' ? 'Overview' : 'Untitled');
+                    const isOverview = slide.type === 'overview';
+                    const mediaUrl = slide.media?.url;
+                    
+                    const thumbnailHtml = mediaUrl 
+                        ? `<img src="${mediaUrl}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                           <div class="hidden w-full h-full flex items-center justify-center bg-slate-200 text-slate-400"><i class="fas ${isOverview ? 'fa-home' : 'fa-image'}"></i></div>` 
+                        : `<div class="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400"><i class="fas ${isOverview ? 'fa-home' : 'fa-image'}"></i></div>`;
+
+                    el.innerHTML = `
+                        <!-- Left: Thumbnail -->
+                        <div class="h-12 w-12 bg-white rounded-lg flex-shrink-0 overflow-hidden border border-slate-200 mr-4 relative shadow-sm">
+                            ${thumbnailHtml}
+                        </div>
+                        
+                        <!-- Middle: Content -->
+                        <div class="flex-1 min-w-0 flex flex-col justify-center mr-4">
+                            <h4 class="font-bold text-slate-700 text-sm truncate leading-tight">${headline}</h4>
+                            <p class="text-[11px] text-slate-500 truncate leading-relaxed mt-0.5 font-medium">${stripHtml(slide.text?.text || 'No description')}</p>
+                        </div>
+                        
+                        <!-- Right: Actions/Grip -->
+                        <div class="flex items-center gap-2 pl-2 border-l border-slate-200/50">
+                            <div class="drag-handle w-8 h-8 flex items-center justify-center text-slate-400 group-hover:text-slate-600 cursor-grab active:cursor-grabbing transition-colors rounded-lg hover:bg-slate-200">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                        </div>
+                    `;
+                    el.addEventListener('click', (e) => {
+                        // Prevent click when dragging
+                         if (e.target.closest('.drag-handle')) return;
+                         showEditor(index);
+                    });
+                    pointsList.appendChild(el);
+                });
+            };
+
+            const populateEditorFields = (index) => {
+                const slide = storyMapData.storymap.slides[index];
+                if (!slide) return;
+
+                editHeadline.value = slide.text?.headline || '';
+                editText.value = slide.text?.text || '';
+                
+                editMediaUrl.value = slide.media?.url || '';
+                editMediaCaption.value = slide.media?.caption || '';
+                editMediaCredit.value = slide.media?.credit || '';
+                
+                editLat.value = slide.location?.lat ?? '';
+                editLon.value = slide.location?.lon ?? '';
+
+                // Handling Overview vs Regular Slide
+                const isOverview = slide.type === 'overview';
+                const locDetails = document.getElementById('location-details');
+                if (isOverview) {
+                     locDetails.classList.add('hidden');
+                } else {
+                     locDetails.classList.remove('hidden');
+                }
+            };
+
+            const populateMapConfig = () => {
+                if(!storyMapData?.storymap) return;
+                mapLanguage.value = storyMapData.storymap.language || 'en';
+                mapType.value = storyMapData.storymap.map_type || 'osm:standard';
+                mapAsImage.checked = storyMapData.storymap.map_as_image || false;
+            }
+
+            const renderStoryMap = (startAt = 0) => {
+                if (!iframe.contentWindow || !storyMapData) return;
+                const payload = JSON.parse(JSON.stringify(storyMapData));
+                payload.start_at_slide = startAt;
+                iframe.contentWindow.postMessage(payload, '*');
+            };
+
+            // --- AUTO-BINDING INPUTS ---
+            // Updates data model immediately on input change
+            
+            const updateCurrentSlide = (key, subKey, value) => {
+                if (currentSlideIndex === null) return;
+                const slide = storyMapData.storymap.slides[currentSlideIndex];
+                
+                if (!slide[key]) slide[key] = {};
+                slide[key][subKey] = value;
+                
+                // Debounce map update? For now, instant for text, deferred for heavy stuff?
+                // Actually, let's just update internal data, map only needs refresh on heavy changes.
+                // But user expects to see title change in sidebar if we were showing it live.
+                
+                updateSaveStatus('Unsaved changes');
+            };
+
+            editHeadline.addEventListener('input', (e) => {
+                updateCurrentSlide('text', 'headline', e.target.value);
+            });
+            editText.addEventListener('input', (e) => {
+                updateCurrentSlide('text', 'text', e.target.value);
+            });
+            
+            editMediaUrl.addEventListener('change', (e) => { // Use change for URL to avoid spamming
+                updateCurrentSlide('media', 'url', e.target.value);
+                renderStoryMap(currentSlideIndex);
+            });
+             editMediaCaption.addEventListener('input', (e) => updateCurrentSlide('media', 'caption', e.target.value));
+             editMediaCredit.addEventListener('input', (e) => updateCurrentSlide('media', 'credit', e.target.value));
+             
+             editLat.addEventListener('change', (e) => {
+                 updateCurrentSlide('location', 'lat', parseFloat(e.target.value));
+                 renderStoryMap(currentSlideIndex);
+             });
+             editLon.addEventListener('change', (e) => {
+                 updateCurrentSlide('location', 'lon', parseFloat(e.target.value));
+                 renderStoryMap(currentSlideIndex);
+             });
+
+             // Smart Paste for Coordinates (e.g. "45.123, -10.5")
+             const handleCoordinatePaste = (e) => {
+                const paste = (e.clipboardData || window.clipboardData).getData('text');
+                // Regex matches: optional whitespace, number, comma, optional whitespace, number, optional whitespace
+                const match = paste.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+
+                if (match) {
+                    e.preventDefault();
+                    const lat = parseFloat(match[1]);
+                    const lon = parseFloat(match[2]);
+                    
+                    editLat.value = lat;
+                    editLon.value = lon;
+                    
+                    updateCurrentSlide('location', 'lat', lat);
+                    updateCurrentSlide('location', 'lon', lon);
+                    renderStoryMap(currentSlideIndex);
+                    
+                    // Visual feedback
+                    editLat.parentElement.classList.add('ring-2', 'ring-emerald-500');
+                    setTimeout(() => editLat.parentElement.classList.remove('ring-2', 'ring-emerald-500'), 500);
+                }
+             };
+             
+             editLat.addEventListener('paste', handleCoordinatePaste);
+             editLon.addEventListener('paste', handleCoordinatePaste);
+
+             // Map Config
+             const updateMapConfig = () => {
+                 storyMapData.storymap.language = mapLanguage.value;
+                 storyMapData.storymap.map_type = mapType.value;
+                 storyMapData.storymap.map_as_image = mapAsImage.checked;
+                 renderStoryMap(currentSlideIndex || 0);
+                 updateSaveStatus('Unsaved changes');
+             }
+             mapLanguage.addEventListener('change', updateMapConfig);
+             mapType.addEventListener('change', updateMapConfig);
+             mapAsImage.addEventListener('change', updateMapConfig);
+
+
+            // --- UTILS ---
+            const stripHtml = (html) => {
+                let tmp = document.createElement("DIV");
+                tmp.innerHTML = html;
+                return tmp.textContent || tmp.innerText || "";
+            };
+
+            // --- EVENT LISTENERS (MISC) ---
+            document.getElementById('toggle-map-config').addEventListener('click', () => {
+                mapConfigPanel.classList.toggle('hidden');
+            });
+            document.getElementById('close-config-btn').addEventListener('click', () => {
+                mapConfigPanel.classList.add('hidden');
+            });
+
+            document.getElementById('save-server-btn').addEventListener('click', saveToServer);
+            idInput.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter') loadStoryMap();
+            });
+
+            // Delete Logic
+            const deleteModal = document.getElementById('delete-modal');
+            const deleteBtn = document.getElementById('delete-current-slide');
+            
+            deleteBtn.addEventListener('click', () => {
+                if(currentSlideIndex === null) return;
+                if(storyMapData.storymap.slides[currentSlideIndex].type === 'overview') {
+                    alert("Cannot delete the overview slide.");
+                    return;
+                }
+                // Show modal
+                deleteModal.classList.remove('hidden');
+                setTimeout(() => deleteModal.classList.remove('opacity-0'), 10);
+            });
+            
+            document.getElementById('cancel-delete-btn').addEventListener('click', () => {
+                deleteModal.classList.add('opacity-0');
+                setTimeout(() => deleteModal.classList.add('hidden'), 200);
+            });
+
+            document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+                 storyMapData.storymap.slides.splice(currentSlideIndex, 1);
+                 showList();
+                 deleteModal.classList.add('opacity-0');
+                 setTimeout(() => deleteModal.classList.add('hidden'), 200);
+                 updateSaveStatus('Unsaved changes');
+            });
+
+            // Drag and Drop
+            new Sortable(pointsList, {
+                animation: 150,
+                handle: '.drag-handle',
+                onEnd: (evt) => {
+                    const item = storyMapData.storymap.slides.splice(evt.oldIndex, 1)[0];
+                    storyMapData.storymap.slides.splice(evt.newIndex, 0, item);
+                    updateSaveStatus('Unsaved changes');
+                    renderStoryMap();
+                }
+            });
+
+            // --- DRAG EVENT LISTENERS ---
+            toggleDragBtn.addEventListener('click', () => {
+                if (currentSlideIndex === null) return;
+                
+                isDraggingEnabled = !isDraggingEnabled;
+                updateDragButtonUI();
+
+                // Send message to preview
+                iframe.contentWindow.postMessage({
+                    type: 'set-marker-drag',
+                    active: isDraggingEnabled,
+                    slide_index: currentSlideIndex
+                }, '*');
+            });
+
+            window.addEventListener('message', (event) => {
+                const data = event.data;
+                
+                if (data.type === 'map-loaded') {
+                    if (isDraggingEnabled && currentSlideIndex !== null) {
+                        // Re-enable drag if it was active
+                        iframe.contentWindow.postMessage({
+                            type: 'set-marker-drag',
+                            active: true,
+                            slide_index: currentSlideIndex
+                        }, '*');
+                    }
+                }
+                else if (data.type === 'marker-drag-end') {
+                    // Update inputs
+                    editLat.value = data.lat.toFixed(6); 
+                    editLon.value = data.lon.toFixed(6);
+
+                    // Update data model silently (no re-render)
+                    if (currentSlideIndex !== null && storyMapData?.storymap?.slides) {
+                        const slide = storyMapData.storymap.slides[currentSlideIndex];
+                        if (!slide.location) slide.location = {};
+                        slide.location.lat = data.lat;
+                        slide.location.lon = data.lon;
+                        updateSaveStatus('Unsaved changes');
+                    }
+                }
+            });
+
+            // Initial Load
+            loadStoryMap();
+        });
+    </script>
+</body>
+</html>

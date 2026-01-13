@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StoryMap Preview</title>
+    <!-- StoryMapJS CSS and JS -->
+    <link rel="stylesheet" href="https://cdn.knightlab.com/libs/storymapjs/latest/css/storymap.css">
+    <script type="text/javascript" src="https://cdn.knightlab.com/libs/storymapjs/latest/js/storymap-min.js"></script>
+    <style>
+        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        #storymap-container { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="storymap-container"></div>
+    <script>
+        let storymapInstance = null;
+
+        // Check for ID in query string for standalone preview
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+
+        if (id) {
+            console.log(`Preview: Found ID ${id}, fetching data...`);
+            // Fetch from the API endpoint (index.php is in the parent directory)
+            fetch(`../?id=${id}`)
+                .then(res => {
+                    if(!res.ok) throw new Error("Failed to load StoryMap data");
+                    return res.json();
+                })
+                .then(data => {
+                    storymapInstance = new KLStoryMap.StoryMap('storymap-container', data);
+                    window.onresize = function() {
+                        if(storymapInstance) {
+                            storymapInstance.updateDisplay();
+                        }
+                    }
+                })
+                .catch(e => {
+                     document.getElementById('storymap-container').innerHTML = `<div style="padding:20px; color:red;">Error loading map: ${e.message}</div>`;
+                });
+        }
+
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            
+            // Debugging
+            // console.log("Preview received message:", data);
+
+            // Ignore internal command messages (handled by other listeners)
+            // Explicitly check for the type property to avoid "invalid data" warnings
+            if (data && typeof data === 'object' && data.type) {
+                return;
+            }
+
+            // Validate that we actually received a storymap object
+            if (!data || !data.storymap) {
+                // console.warn('Preview: Received invalid or empty data, ignoring.', data);
+                return;
+            }
+            
+            console.log('Preview: Received data, initializing map...');
+
+            // Clear existing content to ensure a clean slate
+            const container = document.getElementById('storymap-container');
+            if (container) {
+                 container.innerHTML = '';
+            }
+
+            try {
+                // Initialize the StoryMap
+                // We use a slight delay to ensure the DOM is ready
+                setTimeout(() => {
+                    // Re-create the container to ensure a fresh start for the library
+                    const oldContainer = document.getElementById('storymap-container');
+                    const newContainer = document.createElement('div');
+                    newContainer.id = 'storymap-container';
+                    oldContainer.parentNode.replaceChild(newContainer, oldContainer);
+                    
+                    // Check if a starting slide index was provided
+                    const startAtSlide = data.start_at_slide || 0;
+
+                    storymapInstance = new KLStoryMap.StoryMap('storymap-container', data, {
+                        start_at_slide: startAtSlide
+                    });
+                    window.onresize = function() {
+                        if(storymapInstance) {
+                            storymapInstance.updateDisplay();
+                        }
+                    }
+                    
+                    // Signal to parent that map is re-initialized
+                    window.parent.postMessage({ type: 'map-loaded' }, '*');
+
+                    // --- CUSTOM MARKER ICONS ---
+                    // Replace default font icons with the slide's media image if available
+                    const applyCustomMarkers = () => {
+                        if (!storymapInstance || !storymapInstance.markers) return;
+
+                        storymapInstance.markers.forEach((marker, index) => {
+                            const slide = data.storymap.slides[index];
+                            // Check if slide has a media URL
+                            if (slide && slide.media && slide.media.url) {
+                                const imageUrl = slide.media.url;
+
+                                const updateIcon = () => {
+                                    const iconEl = marker._icon;
+                                    if (!iconEl) return;
+
+                                    // 1. Remove default icon classes (e.g. vco-icon-image) to hide the font icon
+                                    // This prevents the default symbol from showing behind or around our image
+                                    Array.from(iconEl.classList).forEach(cls => {
+                                        if (cls.startsWith('vco-icon-')) {
+                                            iconEl.classList.remove(cls);
+                                        }
+                                    });
+
+                                    // 2. Inject a div with the background image
+                                    let imgDiv = iconEl.querySelector('.custom-marker-img');
+                                    if (!imgDiv) {
+                                        imgDiv = document.createElement('div');
+                                        imgDiv.className = 'custom-marker-img';
+                                        
+                                        // Styling to make the image round and centered
+                                        // This replaces the role of the ::before pseudo-element
+                                        Object.assign(imgDiv.style, {
+                                            width: '100%',
+                                            height: '100%',
+                                            backgroundImage: `url('${imageUrl}')`,
+                                            backgroundSize: 'cover',
+                                            backgroundPosition: 'center',
+                                            borderRadius: '50%',
+                                            position: 'absolute',
+                                            top: '0',
+                                            left: '0',
+                                            zIndex: '10',
+                                            boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)' // Subtle border
+                                        });
+                                        
+                                        iconEl.appendChild(imgDiv);
+                                    } else {
+                                        // Update URL if it changed
+                                        imgDiv.style.backgroundImage = `url('${imageUrl}')`;
+                                    }
+                                };
+
+                                // Apply immediately
+                                updateIcon();
+                                
+                                // Re-apply if the marker is re-added to the map (e.g. after zoom)
+                                marker.on('add', updateIcon);
+                            }
+                        });
+                    };
+                    
+                    // Run with a small delay to ensure markers are rendered in DOM
+                    setTimeout(applyCustomMarkers, 200);
+
+                }, 10);
+            } catch (e) {
+                console.error("Preview: Error rendering map", e);
+                // We don't want to wipe the body here either
+                const container = document.getElementById('storymap-container');
+                if (container) container.innerHTML = '<div style="padding:20px; color:red;">Error rendering map: ' + e.message + '</div>';
+            }
+        });
+
+        // --- NEW: Dragging Logic ---
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            if (data.type === 'set-marker-drag' && storymapInstance) {
+                 const shouldDrag = data.active;
+                 const currentSlideIndex = data.slide_index;
+                 let marker = null;
+
+                 // Strategy 1: Try known internal arrays
+                 if (storymapInstance.markers && storymapInstance.markers[currentSlideIndex]) {
+                     marker = storymapInstance.markers[currentSlideIndex];
+                 }
+
+                 // Strategy 2: Search the map for the active marker (Visual)
+                 if (!marker && storymapInstance.map) {
+                     storymapInstance.map.eachLayer(layer => {
+                         // Check if it's a marker (has dragging) and has the active class
+                         if (layer.dragging && layer._icon && layer._icon.classList.contains('vco-mapmarker-active')) {
+                             marker = layer;
+                         }
+                     });
+                 }
+
+                 if (marker) {
+                     console.log("Preview: Found marker, dragging:", shouldDrag);
+                     if (shouldDrag) {
+                         if (marker.dragging) {
+                            marker.dragging.enable();
+                            if(marker._icon) {
+                                marker._icon.style.cursor = 'move';
+                                marker._icon.style.pointerEvents = 'auto'; // Ensure it catches clicks
+                            }
+
+                            marker.on('dragend', function(e) {
+                                const latLng = e.target.getLatLng();
+                                window.parent.postMessage({
+                                    type: 'marker-drag-end',
+                                    lat: latLng.lat,
+                                    lon: latLng.lng
+                                }, '*');
+                            });
+                         }
+                     } else {
+                         if (marker.dragging) {
+                             marker.dragging.disable();
+                             if(marker._icon) marker._icon.style.cursor = 'pointer';
+                             marker.off('dragend');
+                         }
+                     }
+                 } else {
+                     console.warn("Preview: Could not find marker to drag for slide " + currentSlideIndex);
+                     // Debug: Log keys to help identify structure if needed
+                     console.log("StoryMap keys:", Object.keys(storymapInstance));
+                     if(storymapInstance.map) console.log("Map found");
+                 }
+            }
+        });
+
+        // Signal to parent that we are ready
+        window.parent.postMessage({ type: 'preview-ready' }, '*');
+    </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+{
+    "width": 800,
+    "height": 600,
+    "font_css": "",
+    "calculate_zoom": true,
+    "storymap": {
+        "language": "en",
+        "map_type": "osm:standard",
+        "map_as_image": false,
+        "map_subdomains": "abc",
+        "slides": [
+            {
+                "text": {
+                    "headline": "XD LOL",
+                    "text": "<p>Welcome!<\/p>"
+                },
+                "media": {
+                    "url": "",
+                    "caption": "",
+                    "credit": ""
+                },
+                "type": "overview"
+            },
+            {
+                "location": {
+                    "lat": 48.8584,
+                    "lon": 2.2945
+                },
+                "text": {
+                    "headline": "Eiffel Tower",
+                    "text": "A sample point."
+                },
+                "media": {
+                    "url": "https:\/\/placehold.co\/800x600\/E8E8E8\/000000?text=Eiffel+Tower"
+                }
+            }
+        ]
+    }
+}

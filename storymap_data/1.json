@@ -1,0 +1,198 @@
+{
+    "width": 800,
+    "height": 600,
+    "font_css": "",
+    "calculate_zoom": true,
+    "storymap": {
+        "language": "en",
+        "map_type": "osm:standard",
+        "map_as_image": false,
+        "slides": [
+            {
+                "text": {
+                    "headline": "Venice: The Floating City",
+                    "text": "Built on more than 100 small islands in a lagoon in the Adriatic Sea, Venice has no roads, just canals, lined with Renaissance and Gothic palaces."
+                },
+                "media": {
+                    "url": "https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/8\/8c\/Campanile_of_St._Mark%27s_Basilica_-_remote_view.jpg\/500px-Campanile_of_St._Mark%27s_Basilica_-_remote_view.jpg",
+                    "caption": "St. Mark's Square and the Grand Canal.",
+                    "credit": "Wikimedia Commons"
+                },
+                "location": {
+                    "lat": 45.4341,
+                    "lon": 12.3385,
+                    "zoom": 16
+                }
+            },
+            {
+                "text": {
+                    "headline": "Verona: City of Romance",
+                    "text": "Famous as the setting for Shakespeare's Romeo and Juliet, Verona is also home to a remarkably preserved 1st-century Roman amphitheatre."
+                },
+                "media": {
+                    "url": "https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/8\/84\/Arena_Anfiteatro.XE3F1912a.jpg\/1280px-Arena_Anfiteatro.XE3F1912a.jpg",
+                    "caption": "The ancient Arena di Verona.",
+                    "credit": "Wikimedia Commons"
+                },
+                "location": {
+                    "lat": 45.415322477757584,
+                    "lon": 10.966415405273438,
+                    "zoom": 16
+                }
+            },
+            {
+                "text": {
+                    "headline": "Pisa: The Leaning Wonder",
+                    "text": "The Leaning Tower of Pisa is the campanile, or freestanding bell tower, of the cathedral of the Italian city of Pisa, known worldwide for its nearly four-degree lean."
+                },
+                "media": {
+                    "url": "https:\/\/upload.wikimedia.org\/wikipedia\/commons\/6\/66\/The_Leaning_Tower_of_Pisa_SB.jpeg",
+                    "caption": "The world-famous Leaning Tower.",
+                    "credit": "Wikimedia Commons"
+                },
+                "location": {
+                    "lat": 43.723,
+                    "lon": 10.3966,
+                    "zoom": 16
+                }
+            },
+            {
+                "text": {
+                    "headline": "Florence: Birthplace of the Renaissance",
+                    "text": "Florence is famous for its history and is considered the birthplace of the Renaissance. The Duomo is its most iconic landmark."
+                },
+                "media": {
+                    "url": "https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/c\/c7\/Cattedrale_di_Santa_Maria_del_Fiore_%E2%80%93_Il_Duomo_di_Firenze.jpg\/1280px-Cattedrale_di_Santa_Maria_del_Fiore_%E2%80%93_Il_Duomo_di_Firenze.jpg",
+                    "caption": "The terracotta-tiled dome engineered by Brunelleschi.",
+                    "credit": "Wikimedia Commons"
+                },
+                "location": {
+                    "lat": 43.7731,
+                    "lon": 11.256,
+                    "zoom": 16
+                }
+            },
+            {
+                "text": {
+                    "headline": "Milan: Fashion & Architecture",
+                    "text": "The Duomo di Milano is a masterpiece of Gothic architecture and the heart of this cosmopolitan city known for high fashion and design."
+                },
+                "media": {
+                    "url": "https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/7\/70\/Milan_Cathedral_from_Piazza_del_Duomo.jpg\/1280px-Milan_Cathedral_from_Piazza_del_Duomo.jpg",
+                    "caption": "The majestic Gothic cathedral of Milan.",
+                    "credit": "Wikimedia Commons"
+                },
+                "location": {
+                    "lat": 45.4641,
+                    "lon": 9.1919,
+                    "zoom": 16
+                }
+            },
+            {
+                "text": {
+                    "headline": "Rome: The Eternal City",
+                    "text": "The capital of Italy and home to the Vatican City. The Colosseum stands as a symbol of the power of the ancient Roman Empire."
+                },
+                "media": {
+                    "url": "https:\/\/upload.wikimedia.org\/wikipedia\/commons\/d\/de\/Colosseo_2020.jpg",
+                    "caption": "The Colosseum, the largest amphitheatre ever built.",
+                    "credit": "Wikimedia Commons"
+                },
+                "location": {
+                    "lat": 41.8902,
+                    "lon": 12.4922,
+                    "zoom": 16
+                }
+            },
+            {
+                "text": {
+                    "headline": "Pompeii: Frozen in Time",
+                    "text": "Buried by the eruption of Mount Vesuvius in 79 AD, the ruins of Pompeii offer a unique snapshot of Roman life."
+                },
+                "media": {
+                    "url": "https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/d\/d4\/Theathres_of_Pompeii.jpg\/960px-Theathres_of_Pompeii.jpg",
+                    "caption": "Ancient streets of Pompeii.",
+                    "credit": "Wikimedia Commons"
+                },
+                "location": {
+                    "lat": 40.7493,
+                    "lon": 14.4847,
+                    "zoom": 16
+                }
+            },
+            {
+                "type": "overview",
+                "text": {
+                    "headline": "The Grand Tour of Italy",
+                    "text": "<p>Embark on a comprehensive journey through Italy, exploring its rich history, vibrant culture, and stunning landscapes from the Alps to Sicily.<\/p>"
+                },
+                "media": {
+                    "url": "https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/0\/03\/Flag_of_Italy.svg\/1200px-Flag_of_Italy.svg.png",
+                    "caption": "Italy, a land of beauty and history.",
+                    "credit": "Wikimedia Commons"
+                }
+            },
+            {
+                "text": {
+                    "headline": "Positano: The Amalfi Gem",
+                    "text": "A cliffside village on southern Italy's Amalfi Coast, known for its pebble beaches and steep, narrow streets lined with boutiques and cafes."
+                },
+                "media": {
+                    "url": "https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/9\/9b\/Positano_Sunset.JPG\/1280px-Positano_Sunset.JPG",
+                    "caption": "Positano cascading down to the sea.",
+                    "credit": "Wikimedia Commons"
+                },
+                "location": {
+                    "lat": 40.6288,
+                    "lon": 14.485,
+                    "zoom": 15
+                }
+            },
+            {
+                "text": {
+                    "headline": "Matera: City of Stones",
+                    "text": "Known for its Sassi, ancient cave dwellings inhabited since the Paleolithic period, Matera is one of the most unique landscapes in the world."
+                },
+                "media": {
+                    "url": "https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/7\/7f\/Matera_-_View_from_Sant%27Agostino.jpg\/1280px-Matera_-_View_from_Sant%27Agostino.jpg",
+                    "caption": "The Sassi di Matera.",
+                    "credit": "Wikimedia Commons"
+                },
+                "location": {
+                    "lat": 40.6664,
+                    "lon": 16.6043,
+                    "zoom": 16
+                }
+            },
+            {
+                "text": {
+                    "headline": "Mount Etna: Sicily's Giant",
+                    "text": "One of the world's most active volcanoes and the highest in Europe, dominating the skyline of eastern Sicily."
+                },
+                "media": {
+                    "url": "https:\/\/upload.wikimedia.org\/wikipedia\/commons\/thumb\/3\/39\/Mt_Etna_and_Catania1.jpg\/2560px-Mt_Etna_and_Catania1.jpg",
+                    "caption": "The lunar landscape of Mount Etna.",
+                    "credit": "Wikimedia Commons"
+                },
+                "location": {
+                    "lat": 37.751,
+                    "lon": 14.9934,
+                    "zoom": 14
+                }
+            },
+            {
+                "text": {
+                    "headline": "New Slide",
+                    "text": ""
+                },
+                "location": {
+                    "lat": 0,
+                    "lon": 0
+                },
+                "media": {
+                    "url": ""
+                }
+            }
+        ]
+    }
+}
