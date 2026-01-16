@@ -293,8 +293,22 @@
             const sidebarToggleIcon = document.getElementById('sidebar-toggle-icon');
             const previewContainer = document.getElementById('preview-container');
 
-            // Force reload iframe to avoid cache issues
-            iframe.src = `preview.html?t=${Date.now()}`;
+            // Function to update the preview iframe's source URL with the correct ID
+            const updateIframeSrc = () => {
+                const id = idInput.value || '1'; // Ensure we always have an ID
+                iframe.src = `preview.html?id=${id}&t=${Date.now()}`;
+            };
+
+            // Get ID from URL, update input, and set initial iframe src
+            const urlParams = new URLSearchParams(window.location.search);
+            const idFromUrl = urlParams.get('id');
+            if (idFromUrl !== null) {
+                idInput.value = idFromUrl;
+            }
+            if (!idInput.value) {
+                idInput.value = '1'; // Default to 1 if empty to prevent errors
+            }
+            updateIframeSrc();
 
             sidebarToggle.addEventListener('click', () => {
                 const isClosed = sidebar.classList.toggle('-translate-x-full');
@@ -620,7 +634,13 @@
 
             document.getElementById('save-server-btn').addEventListener('click', saveToServer);
             idInput.addEventListener('keydown', (e) => {
-                if(e.key === 'Enter') loadStoryMap();
+                if(e.key === 'Enter') {
+                    if (!idInput.value) {
+                        idInput.value = '1'; // Default to 1 if user clears input
+                    }
+                    updateIframeSrc();
+                    loadStoryMap();
+                }
             });
 
             // Delete Logic
