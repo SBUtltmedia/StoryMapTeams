@@ -23,13 +23,36 @@
 
         if (id) {
             console.log(`Preview: Found ID ${id}, fetching data...`);
-            // Fetch from the API endpoint (index.php is in the parent directory)
-            fetch(`../?id=${id}`)
+            // Fetch from the API endpoint
+            fetch(`../api.php?id=${id}`)
                 .then(res => {
-                    if(!res.ok) throw new Error("Failed to load StoryMap data");
+                    if(!res.ok) {
+                        // API returns 404 with JSON body for non-existent files
+                        return res.json().then(errData => {
+                            throw new Error(errData.message || "StoryMap not found");
+                        }).catch(() => {
+                            throw new Error("StoryMap not found (ID: " + id + ")");
+                        });
+                    }
                     return res.json();
                 })
                 .then(data => {
+                    // Validate that data has the expected storymap structure
+                    if (!data || !data.storymap || !data.storymap.slides) {
+                        throw new Error("Invalid StoryMap data structure");
+                    }
+
+                    // Validate that slides have valid location data to prevent Leaflet errors
+                    const hasValidSlides = data.storymap.slides.some(slide =>
+                        slide.location &&
+                        typeof slide.location.lat === 'number' &&
+                        typeof slide.location.lon === 'number'
+                    );
+
+                    if (!hasValidSlides) {
+                        throw new Error("StoryMap has no slides with valid location data");
+                    }
+
                     storymapInstance = new KLStoryMap.StoryMap('storymap-container', data);
                     window.onresize = function() {
                         if(storymapInstance) {
@@ -38,7 +61,13 @@
                     }
                 })
                 .catch(e => {
-                     document.getElementById('storymap-container').innerHTML = `<div style="padding:20px; color:red;">Error loading map: ${e.message}</div>`;
+                    console.error("Preview: Failed to load StoryMap", e);
+                    document.getElementById('storymap-container').innerHTML = `
+                        <div style="padding: 40px; text-align: center; color: #666; font-family: sans-serif;">
+                            <h2 style="color: #c00; margin-bottom: 1rem;">Unable to Load StoryMap</h2>
+                            <p>${e.message}</p>
+                            <p style="font-size: 0.9em; margin-top: 1rem;">Please check that the ID is correct and the StoryMap exists.</p>
+                        </div>`;
                 });
         }
 

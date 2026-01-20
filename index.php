@@ -1,97 +1,141 @@
 <?php
-// --- CONFIGURATION ---
-// The directory where the JSON files will be stored.
-// For security, this should ideally be outside of the public web root.
-$data_directory = 'storymap_data';
+/**
+ * StoryMapTeams - Main Entry Point
+ *
+ * If ?id=X is provided, serves the StoryMap preview
+ * Otherwise, could show a landing page or redirect to editor
+ */
 
-// --- SECURITY & SETUP ---
-// Set the content type to JSON for all responses.
-header('Content-Type: application/json');
-// Set CORS headers to allow requests from any origin.
-// For production, you should restrict this to your specific domain.
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
+// Check for ID in query string
+$id = isset($_GET['id']) ? basename($_GET['id']) : null;
 
-// Handle pre-flight CORS OPTIONS requests.
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    exit(0);
-}
+if ($id) {
+    // Serve the preview page with embedded ID
+    // This avoids a redirect and keeps the clean URL
+    ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StoryMap Preview</title>
+    <!-- StoryMapJS CSS and JS -->
+    <link rel="stylesheet" href="https://cdn.knightlab.com/libs/storymapjs/latest/css/storymap.css">
+    <script type="text/javascript" src="https://cdn.knightlab.com/libs/storymapjs/latest/js/storymap-min.js"></script>
+    <style>
+        html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        #storymap-container { width: 100%; height: 100%; }
+        .error-container {
+            padding: 40px;
+            text-align: center;
+            color: #666;
+            font-family: sans-serif;
+        }
+        .error-container h2 { color: #c00; margin-bottom: 1rem; }
+        .error-container p { font-size: 0.9em; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <div id="storymap-container"></div>
+    <script>
+        (function() {
+            const id = <?php echo json_encode($id); ?>;
+            let storymapInstance = null;
 
-// Ensure the data directory exists.
-if (!is_dir($data_directory)) {
-    if (!mkdir($data_directory, 0755, true)) {
-        http_response_code(500); // Internal Server Error
-        echo json_encode(['success' => false, 'message' => 'Failed to create data directory.']);
-        exit;
-    }
-}
+            console.log(`StoryMap: Loading ID ${id}...`);
 
-// --- LOGIC ---
-// Get the ID from the query string for ALL request types.
-$id = null;
-if (isset($_GET['id'])) {
-    // Sanitize the ID to prevent directory traversal attacks (e.g., ../../... )
-    $id = basename($_GET['id']);
-}
+            // Fetch from the API endpoint
+            fetch(`api.php?id=${id}`)
+                .then(res => {
+                    if (!res.ok) {
+                        // API returns 404 with JSON body for non-existent files
+                        return res.json().then(errData => {
+                            throw new Error(errData.message || "StoryMap not found");
+                        }).catch(() => {
+                            throw new Error("StoryMap not found (ID: " + id + ")");
+                        });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    // Validate that data has the expected storymap structure
+                    if (!data || !data.storymap || !data.storymap.slides) {
+                        throw new Error("Invalid StoryMap data structure");
+                    }
 
-// If no ID is provided in the URL, the request is invalid.
-if (!$id) {
-    http_response_code(400); // Bad Request
-    echo json_encode(['success' => false, 'message' => "The 'id' parameter is required in the query string (e.g., ?id=123)."]);
+                    // Validate that slides have valid location data to prevent Leaflet errors
+                    const hasValidSlides = data.storymap.slides.some(slide =>
+                        slide.location &&
+                        typeof slide.location.lat === 'number' &&
+                        typeof slide.location.lon === 'number'
+                    );
+
+                    if (!hasValidSlides) {
+                        throw new Error("StoryMap has no slides with valid location data");
+                    }
+
+                    storymapInstance = new KLStoryMap.StoryMap('storymap-container', data);
+                    window.onresize = function() {
+                        if (storymapInstance) {
+                            storymapInstance.updateDisplay();
+                        }
+                    };
+                })
+                .catch(e => {
+                    console.error("StoryMap: Failed to load", e);
+                    document.getElementById('storymap-container').innerHTML = `
+                        <div class="error-container">
+                            <h2>Unable to Load StoryMap</h2>
+                            <p>${e.message}</p>
+                            <p>Please check that the ID is correct and the StoryMap exists.</p>
+                        </div>`;
+                });
+        })();
+    </script>
+</body>
+</html>
+<?php
     exit;
 }
 
-$file_path = $data_directory . '/' . $id . '.json';
-
-// --- REQUEST HANDLING ---
-
-// Handle GET request to fetch a StoryMap
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    if (file_exists($file_path)) {
-        http_response_code(200); // OK
-        readfile($file_path);
-    } else {
-        http_response_code(404); // Not Found
-        echo json_encode(['success' => false, 'message' => 'StoryMap not found.']);
-    }
-    exit;
-}
-
-// Handle POST request to create or update a StoryMap
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // The JSON data is expected in the 'json_data' field of the POST body.
-    if (!isset($_POST['json_data'])) {
-        http_response_code(400); // Bad Request
-        echo json_encode(['success' => false, 'message' => "The 'json_data' parameter is required in the POST body."]);
-        exit;
-    }
-
-    $json_data = $_POST['json_data'];
-    // Verify that the received data is valid JSON.
-    $decoded_data = json_decode($json_data);
-
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        http_response_code(400); // Bad Request
-        echo json_encode(['success' => false, 'message' => 'Invalid JSON data provided.']);
-        exit;
-    }
-
-    // Write the data to the file. file_put_contents handles creating/overwriting.
-    // JSON_PRETTY_PRINT makes the saved file human-readable.
-    if (file_put_contents($file_path, json_encode($decoded_data, JSON_PRETTY_PRINT))) {
-        http_response_code(200); // OK
-        echo json_encode(['success' => true, 'message' => 'StoryMap saved successfully.']);
-    } else {
-        http_response_code(500); // Internal Server Error
-        echo json_encode(['success' => false, 'message' => 'Failed to write to file on server.']);
-    }
-    exit;
-}
-
-// If the request method is not GET, POST, or OPTIONS, it's not allowed.
-http_response_code(405); // Method Not Allowed
-echo json_encode(['success' => false, 'message' => 'Method not allowed.']);
+// No ID provided - show a simple landing or redirect to editor
 ?>
-
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StoryMapTeams</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f5f5f5;
+        }
+        .container { text-align: center; padding: 2rem; }
+        h1 { color: #333; margin-bottom: 1rem; }
+        p { color: #666; margin-bottom: 2rem; }
+        a {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+        }
+        a:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>StoryMapTeams</h1>
+        <p>Create and view interactive story maps.</p>
+        <a href="Edit/">Open Editor</a>
+    </div>
+</body>
+</html>
