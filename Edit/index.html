@@ -380,10 +380,26 @@
 
             document.getElementById('back-to-list').addEventListener('click', showList);
             document.getElementById('add-slide-fab').addEventListener('click', () => {
+                // Calculate default location
+                let defaultLat = 41.9028; // Default to Rome
+                let defaultLon = 12.4964;
+
+                if (storyMapData && storyMapData.storymap && storyMapData.storymap.slides) {
+                    const validLocations = storyMapData.storymap.slides
+                        .filter(s => s.location && typeof s.location.lat === 'number' && typeof s.location.lon === 'number');
+                    
+                    if (validLocations.length > 0) {
+                        const sumLat = validLocations.reduce((sum, s) => sum + s.location.lat, 0);
+                        const sumLon = validLocations.reduce((sum, s) => sum + s.location.lon, 0);
+                        defaultLat = sumLat / validLocations.length;
+                        defaultLon = sumLon / validLocations.length;
+                    }
+                }
+
                 // Create new slide
                 const newSlide = {
                     text: { headline: "New Slide", text: "" },
-                    location: { lat: 0, lon: 0 }, // Default
+                    location: { lat: defaultLat, lon: defaultLon }, // Default
                     media: { url: "" }
                 };
                 if (!storyMapData.storymap.slides) storyMapData.storymap.slides = [];

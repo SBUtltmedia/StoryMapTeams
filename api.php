@@ -77,6 +77,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Create a backup of the existing file if it exists
+    if (file_exists($file_path)) {
+        $backup_directory = $data_directory . '/backups';
+        if (!is_dir($backup_directory)) {
+            mkdir($backup_directory, 0755, true);
+        }
+        $timestamp = time();
+        $backup_path = $backup_directory . '/' . $id . '_' . $timestamp . '.json';
+        copy($file_path, $backup_path);
+    }
+
     // Write the data to the file. file_put_contents handles creating/overwriting.
     // JSON_PRETTY_PRINT makes the saved file human-readable.
     if (file_put_contents($file_path, json_encode($decoded_data, JSON_PRETTY_PRINT))) {
